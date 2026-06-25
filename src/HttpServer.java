@@ -3,6 +3,7 @@ import java.io.*;
 
 public class HttpServer {
     private ServerSocket serverSocket;
+    private volatile boolean isRunning = false;
 
     /**
      * Starts the server and has it listen on the given port
@@ -10,21 +11,38 @@ public class HttpServer {
      * @param port port to listen on
      */
     public void start(int port) {
-        try {
-            serverSocket = new ServerSocket(port);
-            System.out.println("Listening on port: " + port);
-
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                Thread worker = new Thread(new ClientHandler(clientSocket));
-                worker.start();
-            }
-        } catch (IOException e) {
-            System.out.println("Server closed: " + e.getMessage());
+        if (isRunning) {
+            System.out.println("Server is already running!");
+            return;
         }
+        isRunning = true;
+
+        new Thread(() -> {
+            try {
+                serverSocket = new ServerSocket(port);
+                System.out.println("Listening on port: " + port);
+
+                while (isRunning) {
+                    Socket clientSocket = serverSocket.accept();
+                    Thread worker = new Thread(new ClientHandler(clientSocket));
+                    worker.start();
+                }
+            } catch (SocketException e) {
+                if (!isRunning) {
+                    System.out.println("Server interrupted intentionally by shutdown sequence.");
+                } else {
+                    throw new RuntimeException("Unexpected SocketException", e);
+                }
+            } catch (IOException e) {
+                System.out.println("Server runtime exception: " + e.getMessage());
+            } finally {
+                cleanUp();
+            }
+        }).start();
     }
 
     public void stop() {
+        isRunning = false;
         try {
             if (serverSocket != null) {
                 serverSocket.close();
@@ -32,6 +50,11 @@ public class HttpServer {
         } catch (IOException e) {
             System.out.println("Error closing server: " + e.getMessage());
         }
+    }
+
+    private void cleanUp() {
+        isRunning = false;
+        System.out.println("Server has successfully shut down.");
     }
 
     private static class ClientHandler implements Runnable {
