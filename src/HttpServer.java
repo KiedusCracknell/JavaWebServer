@@ -16,15 +16,8 @@ public class HttpServer {
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                try (
-                        BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                        PrintWriter out = new PrintWriter(clientSocket.getOutputStream());
-                ) {
-                    String inputLine;
-                    while ((inputLine = in.readLine()) != null && !inputLine.isBlank()) {
-                        System.out.println(inputLine);
-                    }
-                }
+                Thread worker = new Thread(new ClientHandler(clientSocket));
+                worker.start();
             }
         } catch (IOException e) {
             System.out.println("Server closed: " + e.getMessage());
@@ -33,11 +26,40 @@ public class HttpServer {
 
     public void stop() {
         try {
-            if(serverSocket != null) {
+            if (serverSocket != null) {
                 serverSocket.close();
             }
         } catch (IOException e) {
             System.out.println("Error closing server: " + e.getMessage());
+        }
+    }
+
+    private static class ClientHandler implements Runnable {
+        private final Socket socket;
+
+        ClientHandler(Socket socket) {
+            this.socket = socket;
+        }
+
+        @Override
+        public void run() {
+            try (
+                    socket;
+                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            ) {
+                String inputLine;
+                while ((inputLine = in.readLine()) != null && !inputLine.isBlank()) {
+                    System.out.println(inputLine);
+                }
+                out.print("HTTP/1.1 200 OK\r\n");
+                out.print("Content-Type: text/html\r\n");
+                out.print("\r\n");
+                out.print("<h1 style='color: red;'>Server is Online!</h1>");
+                out.print("<p>The production line is running continuously.</p>");
+            } catch (IOException e) {
+                System.out.println("error: " + e.getMessage());
+            }
         }
     }
 }
