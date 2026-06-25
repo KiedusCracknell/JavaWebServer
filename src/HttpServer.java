@@ -14,14 +14,16 @@ public class HttpServer {
             serverSocket = new ServerSocket(port);
             System.out.println("Listening on port: " + port);
 
-            Socket clientSocket = serverSocket.accept();
-            try (
-                    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                    PrintWriter out = new PrintWriter(clientSocket.getOutputStream());
-            ) {
-                String inputLine;
-                while ((inputLine = in.readLine()) != null && !inputLine.isBlank()) {
-                    System.out.println(inputLine);
+            while (true) {
+                Socket clientSocket = serverSocket.accept();
+                try (
+                        BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                        PrintWriter out = new PrintWriter(clientSocket.getOutputStream());
+                ) {
+                    String inputLine;
+                    while ((inputLine = in.readLine()) != null && !inputLine.isBlank()) {
+                        System.out.println(inputLine);
+                    }
                 }
             }
         } catch (IOException e) {
