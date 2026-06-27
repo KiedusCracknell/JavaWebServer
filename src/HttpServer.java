@@ -66,22 +66,33 @@ public class HttpServer {
 
         @Override
         public void run() {
-            try (
-                    socket;
-                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            ) {
-                String inputLine;
-                while ((inputLine = in.readLine()) != null && !inputLine.isBlank()) {
-                    System.out.println(inputLine);
+            try {
+                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+
+                while (!socket.isClosed()) {
+                    String requestLine = in.readLine();
+                    if (requestLine == null) break;
+                    HttpRequest request = new HttpRequest(requestLine);
+
+//                    String header;
+//                    while (!(header = in.readLine()).isBlank()) {
+//                    }
+
+                    // At this point, we have consumed the full HTTP request header.
+                    // NOW we send the response.
+                    out.print("HTTP/1.1 200 OK\r\n");
+                    out.print("Content-Type: text/html\r\n");
+                    out.print("Connection: keep-alive\r\n"); // Tell the browser we're staying open
+                    out.print("\r\n");
+                    out.print("<h1>Server is Online!</h1>");
+
+                    // The loop repeats and waits for the next request on the same socket
                 }
-                out.print("HTTP/1.1 200 OK\r\n");
-                out.print("Content-Type: text/html\r\n");
-                out.print("\r\n");
-                out.print("<h1 style='color: red;'>Server is Online!</h1>");
-                out.print("<p>The production line is running continuously.</p>");
             } catch (IOException e) {
-                System.out.println("error: " + e.getMessage());
+                System.out.println("Connection closed or error: " + e.getMessage());
+            } finally {
+                try { socket.close(); } catch (IOException ignored) {}
             }
         }
     }
