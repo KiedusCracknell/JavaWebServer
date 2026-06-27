@@ -92,23 +92,27 @@ public class HttpServer {
             } catch (IOException e) {
                 System.out.println("Connection closed or error: " + e.getMessage());
             } finally {
-                try { socket.close(); } catch (IOException ignored) {}
+                try {
+                    socket.close();
+                } catch (IOException ignored) {
+                }
             }
         }
 
         /**
          * Helper method to get full filepath on get requests
+         *
          * @param filePath path to get
          */
         public HttpResponse get(String filePath) throws IOException {
-            if (filePath.equals("/")) {
-                File f = new File(dir + "index.html");
-                if(f.exists() && !f.isDirectory() && f.canRead()){
-                    return new HttpResponse(200, HttpResponse.getMimeType(f.getPath()),
-                            Files.readAllBytes(f.toPath()));
-                }
+            if (filePath.equals("/")) filePath = "/index.html";
+            File f = new File(dir + filePath);
+
+            if (f.exists() && !f.isDirectory() && f.canRead()) {
+                return new HttpResponse(200, HttpResponse.getMimeType(f.getPath()),
+                        Files.readAllBytes(f.toPath()));
             }
-            return new HttpResponse(404, "", "");
-        }
+            return new HttpResponse(404,"text/html","404 - File not found");
     }
+}
 }
