@@ -1,9 +1,11 @@
 import java.net.*;
 import java.io.*;
+import java.nio.file.Files;
 
 public class HttpServer {
     private ServerSocket serverSocket;
     private volatile boolean isRunning = false;
+    private String dir = "www/test-site/";
 
     /**
      * Starts the server and has it listen on the given port
@@ -57,7 +59,7 @@ public class HttpServer {
         System.out.println("Server has successfully shut down.");
     }
 
-    private static class ClientHandler implements Runnable {
+    private class ClientHandler implements Runnable {
         private final Socket socket;
 
         ClientHandler(Socket socket) {
@@ -68,20 +70,22 @@ public class HttpServer {
         public void run() {
             try {
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                OutputStream out = socket.getOutputStream();
 
                 while (!socket.isClosed()) {
                     String requestLine = in.readLine();
                     if (requestLine == null) break;
                     HttpRequest request = new HttpRequest(requestLine);
-                    HttpResponse response = new HttpResponse(200, "text/html", "<h1>Server is Online!</h1>");
+                    HttpResponse response;
                     String header;
                     System.out.println(requestLine);
                     while (!(header = in.readLine()).isBlank()) {
                         System.out.println(header);
                     }
-
-                    response.send(out);
+                    if (request.getMethod().equals("GET")) {
+                        response = get(request.getPath());
+                        response.send(out);
+                    }
 
                     // The loop repeats and waits for the next request on the same socket
                 }
@@ -90,6 +94,21 @@ public class HttpServer {
             } finally {
                 try { socket.close(); } catch (IOException ignored) {}
             }
+        }
+
+        /**
+         * Helper method to get full filepath on get requests
+         * @param filePath path to get
+         */
+        public HttpResponse get(String filePath) throws IOException {
+            if (filePath.equals("/")) {
+                File f = new File(dir + "index.html");
+                if(f.exists() && !f.isDirectory() && f.canRead()){
+                    return new HttpResponse(200, HttpResponse.getMimeType(f.getPath()),
+                            Files.readAllBytes(f.toPath()));
+                }
+            }
+            return new HttpResponse(404, "", "");
         }
     }
 }
