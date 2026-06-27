@@ -74,18 +74,14 @@ public class HttpServer {
                     String requestLine = in.readLine();
                     if (requestLine == null) break;
                     HttpRequest request = new HttpRequest(requestLine);
+                    HttpResponse response = new HttpResponse(200, "text/html", "<h1>Server is Online!</h1>");
+                    String header;
+                    System.out.println(requestLine);
+                    while (!(header = in.readLine()).isBlank()) {
+                        System.out.println(header);
+                    }
 
-//                    String header;
-//                    while (!(header = in.readLine()).isBlank()) {
-//                    }
-
-                    // At this point, we have consumed the full HTTP request header.
-                    // NOW we send the response.
-                    out.print("HTTP/1.1 200 OK\r\n");
-                    out.print("Content-Type: text/html\r\n");
-                    out.print("Connection: keep-alive\r\n"); // Tell the browser we're staying open
-                    out.print("\r\n");
-                    out.print("<h1>Server is Online!</h1>");
+                    response.send(out);
 
                     // The loop repeats and waits for the next request on the same socket
                 }
