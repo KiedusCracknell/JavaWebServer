@@ -34,7 +34,7 @@ public class HttpResponse {
     public void send(OutputStream out) {
         String header = getStatusHeader(statusCode) + "Content-Type: " + contentType + "\r\n" +
                 "Content-Length: " + body.length + "\r\n" + "Connection: " +
-                (keepAlive ? "keep-alive\r\n" : "close\r\n") + "\r\n\r\n";
+                (keepAlive ? "keep-alive\r\n" : "close\r\n") + "\r\n";
 
         try {
             out.write(header.getBytes());
@@ -47,9 +47,9 @@ public class HttpResponse {
 
     private String getStatusHeader(int statusCode) {
         return switch (statusCode) {
-            case 200 -> VERSION + statusCode + "OK\r\n";
-            case 500 -> VERSION + statusCode + "INTERNAL SERVER ERROR\r\n";
-            case 404 -> VERSION + statusCode + "PAGE NOT FOUND\r\n";
+            case 200 -> VERSION + statusCode + " OK\r\n";
+            case 500 -> VERSION + statusCode + " INTERNAL SERVER ERROR\r\n";
+            case 404 -> VERSION + statusCode + " PAGE NOT FOUND\r\n";
             default -> getStatusHeader(500);
         };
     }

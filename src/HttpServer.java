@@ -79,7 +79,7 @@ public class HttpServer {
                     HttpResponse response;
                     String header;
                     System.out.println(requestLine);
-                    while (!(header = in.readLine()).isBlank()) {
+                    while ((header = in.readLine()) != null && !header.isBlank()) {
                         System.out.println(header);
                     }
                     if (request.getMethod().equals("GET")) {
@@ -100,9 +100,10 @@ public class HttpServer {
         }
 
         /**
-         * Helper method to get full filepath on get requests
+         * Helper method to get HttpRequest on GET requests
          *
          * @param filePath path to get
+         * @return correct HttpRequest object
          */
         public HttpResponse get(String filePath) throws IOException {
             if (filePath.equals("/")) filePath = "/index.html";
