@@ -5,7 +5,7 @@ import java.nio.file.Files;
 public class HttpServer {
     private ServerSocket serverSocket;
     private volatile boolean isRunning = false;
-    private String dir = "www/test-site/";
+    private File webRoot = new File("www/test-site/");
 
     /**
      * Starts the server and has it listen on the given port
@@ -102,18 +102,31 @@ public class HttpServer {
         /**
          * Helper method to get HttpRequest on GET requests
          *
-         * @param filePath path to get
+         * @param requestedPath path to get
          * @return correct HttpRequest object
          */
-        public HttpResponse get(String filePath) throws IOException {
-            if (filePath.equals("/")) filePath = "/index.html";
-            File f = new File(dir + filePath);
-
-            if (f.exists() && !f.isDirectory() && f.canRead()) {
-                return new HttpResponse(200, HttpResponse.getMimeType(f.getPath()),
-                        Files.readAllBytes(f.toPath()));
+        public HttpResponse get(String requestedPath) throws IOException {
+            if (requestedPath.equals("/")) {
+                requestedPath = "/index.html";
             }
-            return new HttpResponse(404,"text/html","404 - File not found");
+
+            File requestedFile = new File(webRoot, requestedPath);
+
+            // security check
+            String canonicalRoot = webRoot.getCanonicalPath() + File.separator;
+            String canonicalRequested = requestedFile.getCanonicalPath();
+            if (!canonicalRequested.startsWith(canonicalRoot)) {
+                return new HttpResponse(403, "text/html", "403 - Forbidden: Access Denied");
+            }
+
+            if (requestedFile.exists() && !requestedFile.isDirectory()) {
+                return new HttpResponse(200, HttpResponse.getMimeType(requestedFile.getPath()),
+                        Files.readAllBytes(requestedFile.toPath()));
+            } else if (requestedFile.isDirectory()) {
+                return new HttpResponse(404, "text/html", "404 - Directory not found");
+            }
+
+            return new HttpResponse(404, "text/html", "404 - File not found");
     }
 }
 }
