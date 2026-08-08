@@ -112,6 +112,8 @@ public class HttpServer {
         @Override
         public void run() {
             try {
+                socket.setSoTimeout(5000);
+
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 OutputStream out = socket.getOutputStream();
 
@@ -132,6 +134,8 @@ public class HttpServer {
 
                     // The loop repeats and waits for the next request on the same socket
                 }
+            } catch (SocketTimeoutException e) {
+                System.out.println("Connection timed out.");
             } catch (IOException e) {
                 System.out.println("Connection closed or error: " + e.getMessage());
             } finally {
@@ -141,5 +145,5 @@ public class HttpServer {
                 }
             }
         }
-}
+    }
 }
