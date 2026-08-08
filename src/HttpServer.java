@@ -6,6 +6,7 @@ public class HttpServer {
     private ServerSocket serverSocket;
     private volatile boolean isRunning = false;
     private File webRoot = new File("www/test-site/");
+    private boolean autoIndexing = true;
 
     /**
      * Starts the server and has it listen on the given port
@@ -59,6 +60,48 @@ public class HttpServer {
         System.out.println("Server has successfully shut down.");
     }
 
+    /**
+     * Helper method to get HttpRequest on GET requests
+     *
+     * @param requestedPath path to get
+     * @return correct HttpRequest object
+     */
+    public HttpResponse get(String requestedPath) throws IOException {
+        if (requestedPath.equals("/")) {
+            requestedPath = "/index.html";
+        }
+
+        File requestedFile = new File(webRoot, requestedPath);
+
+        // security check
+        String canonicalRoot = webRoot.getCanonicalPath() + File.separator;
+        String canonicalRequested = requestedFile.getCanonicalPath();
+        if (!canonicalRequested.startsWith(canonicalRoot)) {
+            return new HttpResponse(403, "text/html", "403 - Forbidden: Access Denied");
+        }
+
+        if (requestedFile.exists()) {
+            if (requestedFile.isFile()) {
+                return new HttpResponse(200, HttpResponse.getMimeType(requestedFile.getPath()),
+                        Files.readAllBytes(requestedFile.toPath()));
+            } else if (requestedFile.isDirectory()) {
+                if (autoIndexing) {
+                    return generateDirectoryListing(requestedFile);
+                } else return new HttpResponse(403, "text/html", "403 - Forbidden Request");
+            }
+        } else if (requestedFile.isDirectory()) {
+            return new HttpResponse(404, "text/html", "404 - Directory not found");
+        }
+
+        return new HttpResponse(404, "text/html", "404 - File not found");
+    }
+
+    private HttpResponse generateDirectoryListing(File requestedDirectory) {
+        File[] files = requestedDirectory.listFiles(File::isFile);
+
+        return null;
+    }
+
     private class ClientHandler implements Runnable {
         private final Socket socket;
 
@@ -98,35 +141,5 @@ public class HttpServer {
                 }
             }
         }
-
-        /**
-         * Helper method to get HttpRequest on GET requests
-         *
-         * @param requestedPath path to get
-         * @return correct HttpRequest object
-         */
-        public HttpResponse get(String requestedPath) throws IOException {
-            if (requestedPath.equals("/")) {
-                requestedPath = "/index.html";
-            }
-
-            File requestedFile = new File(webRoot, requestedPath);
-
-            // security check
-            String canonicalRoot = webRoot.getCanonicalPath() + File.separator;
-            String canonicalRequested = requestedFile.getCanonicalPath();
-            if (!canonicalRequested.startsWith(canonicalRoot)) {
-                return new HttpResponse(403, "text/html", "403 - Forbidden: Access Denied");
-            }
-
-            if (requestedFile.exists() && !requestedFile.isDirectory()) {
-                return new HttpResponse(200, HttpResponse.getMimeType(requestedFile.getPath()),
-                        Files.readAllBytes(requestedFile.toPath()));
-            } else if (requestedFile.isDirectory()) {
-                return new HttpResponse(404, "text/html", "404 - Directory not found");
-            }
-
-            return new HttpResponse(404, "text/html", "404 - File not found");
-    }
 }
 }

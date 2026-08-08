@@ -50,7 +50,8 @@ public class HttpResponse {
             case 200 -> VERSION + statusCode + " OK\r\n";
             case 500 -> VERSION + statusCode + " INTERNAL SERVER ERROR\r\n";
             case 404 -> VERSION + statusCode + " PAGE NOT FOUND\r\n";
-            default -> getStatusHeader(500);
+            case 403 -> VERSION + statusCode + " FORBIDDEN";
+            default -> VERSION + statusCode + "\r\n";
         };
     }
 
