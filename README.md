@@ -15,6 +15,9 @@ A lightweight, multithreaded HTTP server written entirely in Java. This server a
 
 ## Planned features
 *   **Support full suite of HTTP methods**
+*   **GUI**
+*   **Support for a templating framework**
+*   **Support to act as a reverse proxy**
 
 ## Getting Started
 
