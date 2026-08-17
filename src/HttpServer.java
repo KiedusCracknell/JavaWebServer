@@ -1,6 +1,7 @@
 import java.net.*;
 import java.io.*;
 import java.nio.file.Files;
+import java.util.concurrent.TimeUnit;
 
 public class HttpServer {
     private ServerSocket serverSocket;
@@ -63,13 +64,28 @@ public class HttpServer {
     /**
      * Helper method to get HttpRequest on GET requests
      *
-     * @param requestedPath path to get
-     * @return correct HttpRequest object
+     * @param request HttpRequest
+     * @return correct HttpResponse object
      */
-    public HttpResponse get(String requestedPath) throws IOException {
-        if (requestedPath.equals("/")) {
+    public HttpResponse get(HttpRequest request) throws IOException {
+        String requestedPath = request.getPath();
+        if (requestedPath.startsWith("/api/")) {
+            String endpointName = requestedPath.substring(5);
+            File apiDir = new File(webRoot, "api");
+            if (apiDir.exists() && apiDir.isDirectory()) {
+                // Find ANY file that starts with "time."
+                File[] matches = apiDir.listFiles((dir, name) -> name.startsWith(endpointName + "."));
+
+                if (matches != null && matches.length > 0) {
+                    // We found a script! Pass it to the executor.
+                    return executeScript(matches[0], request);
+                }
+                return new HttpResponse(404, "text/html", "404 - API endpoint not found");
+            }
+        } else if (requestedPath.equals("/")) {
             requestedPath = "/index.html";
         }
+
 
         File requestedFile = new File(webRoot, requestedPath);
 
@@ -94,6 +110,31 @@ public class HttpServer {
         }
 
         return new HttpResponse(404, "text/html", "404 - File not found");
+    }
+
+    private HttpResponse executeScript(File scriptFile, HttpRequest request) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("node", scriptFile.getCanonicalPath());
+
+            pb.environment().put("HTTP_METHOD", request.getMethod());
+            pb.environment().put("QUERY_STRING", request.getQueryMap());
+
+            Process process = pb.start();
+
+            byte[] outputBytes = process.getInputStream().readAllBytes();
+
+            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
+
+            if (!finished) {
+                process.destroyForcibly();
+                return new HttpResponse(500, "text/html", "<h1>500 - Script timeout</h1>");
+            }
+
+            return new HttpResponse(200, "application/json", outputBytes);
+
+        } catch (Exception e) {
+            return new HttpResponse(500, "text/html", "<h1>500 - Execution Error: " + e.getMessage() + "</h1>");
+        }
     }
 
     private HttpResponse generateDirectoryListing(File requestedDirectory) {
@@ -125,10 +166,10 @@ public class HttpServer {
                     String header;
                     System.out.println(requestLine);
                     while ((header = in.readLine()) != null && !header.isBlank()) {
-                        System.out.println(header);
+                        request.addHeader(header);
                     }
                     if (request.getMethod().equals("GET")) {
-                        response = get(request.getPath());
+                        response = get(request);
                         response.send(out);
                     }
 
